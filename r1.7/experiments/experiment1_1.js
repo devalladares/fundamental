@@ -1,68 +1,94 @@
 //----------------------------------------------------
-// Simple Grid (No Subdivision)
+// Dynamic "Mostly Square" Grid (Mouse-Driven Columns)
+// The top rows are squares, the final row fills leftover height.
 //----------------------------------------------------
 window.initExperiment = function() {
   const sketch = (p) => {
-    // We'll store cells in this array
-    let grid = [];
+    // The maximum possible columns
+    const MAX_COLS = 60;  
 
-    // How many rows and columns to begin with
-    const initialRows = 2;
-    const initialCols = 4;
+    // We'll store cells in an array (each cell might be a square or rect)
+    let cells = [];
 
     p.setup = () => {
-      // If you have a logo element, you can offset by its height
+      // Optional: account for a "logo" element at the top
       const logo = document.getElementById("logo");
       let offset = logo ? logo.clientHeight : 0;
       p.createCanvas(p.windowWidth, p.windowHeight - offset);
-
-      initializeGrid();
     };
 
     p.draw = () => {
       p.background(255);
 
-      // Draw each cell as a rectangle
+      // 1) Determine how many columns to use, based on mouseX
+      //    from 1 to MAX_COLS
+      // 1) Map mouseX to [2..MAX_COLS] instead of [1..MAX_COLS]
+let numCols = p.map(p.mouseX, 0, p.width, 2, MAX_COLS);
+
+// 2) Then constrain to ensure it's between 2 and MAX_COLS
+numCols = p.constrain(numCols, 2, MAX_COLS);
+numCols = p.floor(numCols);
+
+      numCols = p.floor(numCols);
+
+      // 2) Rebuild our grid of cells
+      cells = buildGrid(numCols);
+
+      // 3) Draw the cells
       p.stroke(0);
       p.strokeWeight(1);
       p.noFill();
 
-      grid.forEach((cell) => {
-        p.rect(cell.x, cell.y, cell.w, cell.h);
-      });
+      for (let c of cells) {
+        p.rect(c.x, c.y, c.w, c.h);
+      }
     };
 
-    // Rebuild the grid if window is resized
+    // Resize the canvas if window changes
     p.windowResized = () => {
       const logo = document.getElementById("logo");
       let offset = logo ? logo.clientHeight : 0;
       p.resizeCanvas(p.windowWidth, p.windowHeight - offset);
-      initializeGrid();
     };
 
-    // Create our initial grid with initialRows × initialCols
-    function initializeGrid() {
-      grid = [];
-      let cellWidth = p.width / initialCols;
-      let cellHeight = p.height / initialRows;
+    // Helper: build an array of cells
+    // - The top rows are squares of size cellSize x cellSize.
+    // - The final row fills whatever leftover height remains, so might be a rectangle.
+    function buildGrid(numCols) {
+      let result = [];
 
-      for (let r = 0; r < initialRows; r++) {
-        for (let c = 0; c < initialCols; c++) {
-          let x = c * cellWidth;
-          let y = r * cellHeight;
+      // Each cell in full rows is a square of this size:
+      let cellSize = p.width / numCols;
 
-          // Ensure the last row/column fills any leftover space
-          let w = (c === initialCols - 1) ? (p.width - x) : cellWidth;
-          let h = (r === initialRows - 1) ? (p.height - y) : cellHeight;
+      // 1) How many "full" square rows fit?
+      let fullRows = p.floor(p.height / cellSize);
 
-          grid.push({
-            x: x,
-            y: y,
-            w: w,
-            h: h
-          });
+      // 2) leftover space at the bottom
+      let leftoverHeight = p.height - (fullRows * cellSize);
+
+      // 3) total rows = fullRows + 1 for that leftover row
+      //    (only if leftoverHeight > 0, otherwise it's an exact fit)
+      let totalRows = leftoverHeight > 0 ? fullRows + 1 : fullRows;
+
+      // Build the grid row by row
+      for (let r = 0; r < totalRows; r++) {
+        for (let c = 0; c < numCols; c++) {
+          let x = c * cellSize;
+          let y = r * cellSize;
+          let w = cellSize;
+          let h = cellSize;
+
+          // If we're in the last row (r === fullRows), that row's height
+          // is leftoverHeight instead of cellSize.
+          if (r === fullRows && leftoverHeight > 0) {
+            h = leftoverHeight;
+          }
+
+          result.push({ x, y, w, h });
         }
       }
+
+      return result;
     }
   };
 

@@ -1,0 +1,100 @@
+let grid = [];
+let rows = 20;       // Increase or decrease for a more/less dense grid
+let cols = 30;
+let paintColors = ['red', 'yellow', 'blue'];  // The cycle of paint colors
+let colorIndex = 0;                           // Which paint color we’re on
+
+// A helper object that maps sets of base colors to their final display color:
+const colorMap = {
+  'red': '#E10000',
+  'yellow': '#FFC832',
+  'blue': '#1C30C8',
+  'red,yellow': '#FB8805',      // Orange
+  'yellow,blue': '#B103E6',     // Green
+  'red,blue': '#12B100',        // Purple
+  'red,yellow,blue': '#7F7F7F', // A grayish mix for all three
+};
+
+function setup() {
+  const logo = document.getElementById('logo');
+  createCanvas(windowWidth, windowHeight - logo.clientHeight);
+  initializeGrid();
+}
+
+function draw() {
+  background(255);
+
+  // Draw each cell with its current mixed color
+  grid.forEach((cell) => {
+    stroke(0);
+    strokeWeight(1);
+    fill(cell.color);
+    rect(cell.x, cell.y, cell.w, cell.h);
+  });
+}
+
+function mousePressed() {
+  // Each click cycles to the next paint color
+  colorIndex = (colorIndex + 1) % paintColors.length;
+  
+  paintCell(mouseX, mouseY);
+}
+
+function mouseDragged() {
+  // Paint while dragging
+  paintCell(mouseX, mouseY);
+}
+
+function paintCell(mx, my) {
+  // Find which cell we’re over
+  for (let i = 0; i < grid.length; i++) {
+    let cell = grid[i];
+    if (mx >= cell.x && mx < cell.x + cell.w &&
+        my >= cell.y && my < cell.y + cell.h) {
+      // Add the chosen color to this cell’s set
+      cell.baseColors.add(paintColors[colorIndex]);
+      // Compute final color
+      cell.color = getMixedColor(cell.baseColors);
+      break;
+    }
+  }
+}
+
+function getMixedColor(colorSet) {
+  // Sort the base colors in the set, then look up in colorMap
+  // e.g., {'yellow','blue'} -> 'blue,yellow' -> '#7BFF00'
+  let sortedColors = Array.from(colorSet).sort().join(',');
+  return colorMap[sortedColors] || '#000000';
+}
+
+function initializeGrid() {
+  grid = [];
+  let cellWidth = width / cols;
+  let cellHeight = height / rows;
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      let x = c * cellWidth;
+      let y = r * cellHeight;
+
+      // Make sure the last row/col extends fully if there's a rounding gap
+      let w = (c === cols - 1) ? width - x : cellWidth;
+      let h = (r === rows - 1) ? height - y : cellHeight;
+
+      grid.push({
+        x: x,
+        y: y,
+        w: w,
+        h: h,
+        baseColors: new Set(),  // Keep track of which base colors are in this cell
+        color: '#FFFFFF',       // Start with white
+      });
+    }
+  }
+}
+
+function windowResized() {
+  const logo = document.getElementById('logo');
+  resizeCanvas(windowWidth, windowHeight - logo.clientHeight);
+  initializeGrid();
+}

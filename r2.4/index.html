@@ -1,0 +1,238 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>FUNDAMENTALco Grid Experiments</title>  
+<!-- Link to external CSS file -->
+<link rel="stylesheet" href="css/styles.css" />  
+</head>
+
+<body class="light-mode">
+<div id="canvas-container"></div>
+<div id="controls">  
+  <select id="experiment"></select>
+</div>
+<img id="logo" src="assets/logo_black.svg" alt="FUNDAMENTALco Logo" />
+
+<!-- p5.js library -->
+<script src="https://cdn.jsdelivr.net/npm/p5@1.4.2/lib/p5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/p5@1.4.2/lib/addons/p5.sound.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+
+<!-- dat.GUI library (optional, for GUI controls) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.css" />
+
+<!-- Our experiments logic -->
+<script>
+  // --------------------------------------------------
+  // --------------------------------------------------
+  // --------------------------------------------------
+  // --------------------------------------------------
+  // --------------------------------------------------
+
+    
+  const defaultExperimentCode = "1_1"; // sequnencer
+  // const defaultExperimentCode = "8_1"; // sequnencer
+  // const defaultExperimentCode = "8_3"; // strings
+  // const defaultExperimentCode = "8_4"; // strings
+  // const defaultExperimentCode = "8_5"; // strings
+  // const defaultExperimentCode = "8_1";
+  // const defaultExperimentCode = "7_1"; //dimension
+  // const defaultExperimentCode = "7_4"; //dimension
+  // const defaultExperimentCode = "9_1"; //pong
+  // const defaultExperimentCode = "10_1"; //matter
+  // const defaultExperimentCode = "10_2"; //matter
+  // const defaultExperimentCode = "11_1"; //camera
+  // const defaultExperimentCode = "11_2"; //sphere
+  // const defaultExperimentCode = "12_1"; //tetris
+  // const defaultExperimentCode = "13_1"; //tetris
+
+
+  // --------------------------------------------------
+  // --------------------------------------------------
+  // --------------------------------------------------
+  // --------------------------------------------------
+  // --------------------------------------------------
+  // experiments.js (inlined for example; you can keep it in scripts/experiments.js if preferred)
+  // --------------------------------------------------
+  const dropdown = document.getElementById("experiment");
+  let currentScript = null;
+  let currentP5Instance = null;
+
+  // We'll use this global darkMode to sync with body classes and the p5 sketch
+  let darkMode = false; 
+
+  // List all your experiment files here (without the .js extension)
+  const experimentFiles = [
+    "experiment1_1",
+    "experiment1_2",
+    "experiment2_1",
+    "experiment3_1",
+    "experiment4_1",
+    "experiment4_2",
+    "experiment4_3",
+    "experiment4_4",
+    "experiment4_5",
+    "experiment4_6",
+    "experiment4_7",
+    "experiment5_1",
+    "experiment6_1",
+    "experiment7_1",
+    "experiment7_2",
+    "experiment7_3",
+    // "experiment7_4",
+    "experiment8_1",
+    // "experiment8_2",
+    "experiment8_3",
+    "experiment8_4",
+    // "experiment8_5",
+    "experiment9_1",
+    "experiment10_1",
+    "experiment10_2",
+    "experiment11_1",
+    "experiment11_2",
+    "experiment12_1",
+    // "experiment13_1",
+  ];
+
+  function populateDropdown() {
+    const grouped = {};
+    experimentFiles.forEach((file) => {
+      const [experiment, variation] = file.split("_");
+      if (!grouped[experiment]) grouped[experiment] = [];
+      grouped[experiment].push(variation);
+    });
+
+    // Parse the defaultExperimentCode into experiment number and variation
+    const [defaultExpNum, defaultVar] = defaultExperimentCode.split("_");
+
+    Object.keys(grouped).sort((a, b) => {
+      // Sort experiments numerically if possible
+      const numA = parseInt(a.replace("experiment", ""), 10);
+      const numB = parseInt(b.replace("experiment", ""), 10);
+      return numA - numB;
+    }).forEach((experiment) => {
+      const optGroup = document.createElement("optgroup");
+      optGroup.label = `Experiment ${experiment.replace("experiment", "")}`;
+      grouped[experiment].sort((a, b) => parseInt(a) - parseInt(b)).forEach((variation) => {
+        const option = document.createElement("option");
+        option.value = `${experiment}_${variation}`;
+        option.textContent = `Experiment ${experiment.replace("experiment", "")}.${variation}`;
+        
+        // Set the option as selected if it matches the defaultExperimentCode
+        if (
+          experiment.replace("experiment", "") === defaultExpNum &&
+          variation === defaultVar
+        ) {
+          option.selected = true;
+        }
+
+        optGroup.appendChild(option);
+      });
+      dropdown.appendChild(optGroup);
+    });
+  }
+
+  function loadExperiment(name) {
+    // 1) Remove old <script>
+    if (currentScript) {
+      document.body.removeChild(currentScript);
+      currentScript = null;
+    }
+
+    // 2) Remove old p5 canvas instance
+    if (currentP5Instance) {
+      currentP5Instance.remove();
+      currentP5Instance = null;
+    }
+
+    // 3) Clear out any leftover p5 globals
+    if (window.noCanvas) {
+      noCanvas();
+    }
+    const p5Functions = ["draw", "setup", "mousePressed", "mouseMoved", "windowResized"];
+    p5Functions.forEach((fn) => {
+      if (window[fn]) {
+        delete window[fn];
+      }
+    });
+
+    // 4) Remove leftover variables
+    const globalVars = ["grid","maxDepth","initialRows","initialCols","initializeGrid","subdivide","handleInteraction"];
+    globalVars.forEach((v) => {
+      if (window[v]) {
+        delete window[v];
+      }
+    });
+
+    // 5) Create & append new script
+    currentScript = document.createElement("script");
+    currentScript.src = `experiments/${name}.js`;
+    currentScript.onload = () => {
+      console.log(`${name}.js loaded successfully.`);
+
+      if (typeof window.initExperiment === "function") {
+        // initExperiment() will return a new p5 instance
+        currentP5Instance = window.initExperiment();
+
+        // If the new experiment supports setDarkMode, call it with our current mode
+        if (currentP5Instance && typeof currentP5Instance.setDarkMode === "function") {
+          currentP5Instance.setDarkMode(darkMode);
+        }
+      } else {
+        console.error(`No initExperiment() found in ${name}.js`);
+      }
+    };
+    currentScript.onerror = () => {
+      console.error(`Failed to load script: ${currentScript.src}`);
+    };
+    document.body.appendChild(currentScript);
+  }
+
+  // Fill the dropdown and load the default experiment
+  populateDropdown();
+  // After populating, set the dropdown to the default selection
+  const defaultExperiment = dropdown.value || experimentFiles[0];
+  loadExperiment(defaultExperiment);
+
+  // Handle dropdown changes
+  dropdown.addEventListener("change", (event) => {
+    loadExperiment(event.target.value);
+  });
+
+  // --------------------------------------------------
+  // Dark Mode Toggle
+  // --------------------------------------------------
+  function toggleDarkMode() {
+    // Flip our global darkMode flag
+    darkMode = !darkMode;
+
+    // Toggle body classes
+    document.body.classList.toggle("dark-mode", darkMode);
+    document.body.classList.toggle("light-mode", !darkMode);
+
+    // Update the logo graphic
+    const logo = document.getElementById("logo");
+    if (logo) {
+      logo.src = darkMode ? "assets/logo_white.svg" : "assets/logo_black.svg";
+    }
+
+    // Let the p5 sketch know it should also toggle backgrounds
+    if (currentP5Instance && typeof currentP5Instance.setDarkMode === "function") {
+      currentP5Instance.setDarkMode(darkMode);
+    }
+  }
+
+  // Listen for "D" key to toggle dark mode
+  document.addEventListener("keydown", (event) => {
+    if (event.key.toLowerCase() === "d") {
+      toggleDarkMode();
+    }
+  });
+</script>
+
+
+</body>
+</html>

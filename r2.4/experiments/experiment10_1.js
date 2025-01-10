@@ -1,6 +1,7 @@
 //----------------------------------------------------
 // Grid-Based Pong with Color-Mixing & Mouse Control
 // p5.js Instance Mode with Dark/Light Mode Toggle
+// (No Button - Press D to Toggle)
 //----------------------------------------------------
 window.initExperiment = function() {
   let darkMode = false; // Local state for dark mode
@@ -32,6 +33,7 @@ window.initExperiment = function() {
     //----------------------------------------------------
     p.setup = () => {
       let canvas = p.createCanvas(p.windowWidth, p.windowHeight);
+      // Make sure to parent the canvas so you can control its CSS
       canvas.parent('canvas-container');
       p.rectMode(p.CENTER);
       
@@ -45,23 +47,22 @@ window.initExperiment = function() {
       createFloor();
       setupMouseConstraint();
       
-      // Disable all initial velocities and forces
+      // Disable all initial velocities and forces, set boxes to static
       for (let b of boxes) {
         Body.setVelocity(b, { x: 0, y: 0 });
         Body.setAngularVelocity(b, 0);
         b.isStatic = true;
       }
       
-      // Create Dark Mode Toggle Button
-      createDarkModeToggle();
+      // No button creation here, since pressing D handles dark mode
     };
     
     //----------------------------------------------------
     // p5 Draw
     //----------------------------------------------------
     p.draw = () => {
-      // Set background based on dark mode
-      p.background(darkMode ? 0 : 255);
+      // Clear the entire canvas each frame (transparent background)
+      p.clear();
       
       // Update mouse position for Matter.js
       if (canvasMouse) {
@@ -85,7 +86,7 @@ window.initExperiment = function() {
         }
       }
       
-      // Set stroke based on dark mode
+      // Set stroke color based on dark mode
       p.stroke(darkMode ? 255 : 0);
       p.strokeWeight(1);
       
@@ -95,9 +96,10 @@ window.initExperiment = function() {
         
         // Highlight box being hovered or dragged
         if (b === hoveredBody || mouseConstraint.body === b) {
-          p.fill("#1C30C8"); // Highlight color remains the same
+          p.fill("#1C30C8"); // Highlight color
         } else {
-          p.fill(darkMode ? 0 : 255); // Fill black in dark mode, white in light mode
+          // Fill black in dark mode, white in light mode
+          p.fill(darkMode ? 0 : 255);
         }
         
         p.push();
@@ -107,40 +109,9 @@ window.initExperiment = function() {
         p.pop();
       }
     };
-    
+
     //----------------------------------------------------
-    // Create Dark Mode Toggle Button
-    //----------------------------------------------------
-    function createDarkModeToggle() {
-      // Create a button element
-      const button = p.createButton('Toggle Dark Mode');
-      button.position(20, 20);
-      button.style('padding', '10px 20px');
-      button.style('font-size', '16px');
-      button.mousePressed(() => {
-        toggleDarkMode();
-        updateButtonStyle(button);
-      });
-      
-      // Initial button style
-      updateButtonStyle(button);
-    }
-    
-    //----------------------------------------------------
-    // Update Button Style Based on Dark Mode
-    //----------------------------------------------------
-    function updateButtonStyle(button) {
-      if (darkMode) {
-        button.style('background-color', '#333');
-        button.style('color', '#fff');
-      } else {
-        button.style('background-color', '#ddd');
-        button.style('color', '#000');
-      }
-    }
-    
-    //----------------------------------------------------
-    // Toggle Dark Mode Function
+    // Toggle Dark Mode (invoked by your "D" key press)
     //----------------------------------------------------
     function toggleDarkMode() {
       darkMode = !darkMode;
@@ -152,6 +123,17 @@ window.initExperiment = function() {
     p.setDarkMode = (mode) => {
       darkMode = mode;
     };
+
+    // OPTIONAL: If you want to handle the 'D' press in THIS SKETCH,
+    // you can uncomment the p.keyPressed function below. 
+    // As you said, it's "done already" outside this code, so only use if needed:
+    /*
+    p.keyPressed = () => {
+      if (p.key === 'd' || p.key === 'D') {
+        toggleDarkMode();
+      }
+    };
+    */
     
     //----------------------------------------------------
     // Setup Mouse Constraint for Matter.js
@@ -254,7 +236,6 @@ window.initExperiment = function() {
     //----------------------------------------------------
     // Handle Mouse Interaction to Activate Physics
     //----------------------------------------------------
-    // Modified to handle both mouse move and drag
     p.mouseMoved = p.mousePressed = () => {
       if (!hasInteracted) {
         hasInteracted = true;
@@ -277,6 +258,7 @@ window.initExperiment = function() {
       createFloor();
       setupMouseConstraint();
       
+      // Re-disable all velocities
       for (let b of boxes) {
         Body.setVelocity(b, { x: 0, y: 0 });
         Body.setAngularVelocity(b, 0);

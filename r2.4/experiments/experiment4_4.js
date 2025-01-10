@@ -2,15 +2,15 @@ window.initExperiment = function() {
   let darkMode = false;
 
   const sketch = (p) => {
-    const GRID_ROWS = 20;
-    const GRID_COLS = 30; 
-    const WAVE_SPEED = 0.1;  // Speed of wave propagation
-    const WAVE_AMPLITUDE = 100;  // Height of wave
-    const WAVE_LENGTH = 500;  // Length of wave spread
-    const WAVE_DECAY = 0.95;  // How quickly waves fade out
-
+    const GRID_ROWS = 15;
+    const GRID_COLS = 25;
+    const WAVE_SPEED = 0.12;
+    const WAVE_AMPLITUDE = 45;
+    const WAVE_LENGTH = 800;
+    const WAVE_DECAY = 0.985;
+    
     let gridCells = [];
-    let waveOrigins = [];  // Track where waves start
+    let waveOrigins = [];
     
     p.setup = () => {
       let canvas = p.createCanvas(p.windowWidth, p.windowHeight);
@@ -25,7 +25,6 @@ window.initExperiment = function() {
       const fillColor = darkMode ? 0 : 255;
       const contrastColor = darkMode ? 255 : 0;
 
-      // Update wave origins - fade them out over time
       for (let i = waveOrigins.length - 1; i >= 0; i--) {
         waveOrigins[i].strength *= WAVE_DECAY;
         if (waveOrigins[i].strength < 0.01) {
@@ -33,14 +32,13 @@ window.initExperiment = function() {
         }
       }
 
-      // Add new wave origin at mouse position if hovering
-      if (p.mouseY > 0) {
-        const hoverRow = Math.floor((p.mouseY - gridCells[0].y) / gridCells[0].h);
-        if (hoverRow >= 0 && hoverRow < GRID_ROWS) {
-          let exists = waveOrigins.some(w => w.row === hoverRow);
+      if (p.mouseX > 0) {
+        const hoverCol = Math.floor(p.mouseX / gridCells[0].w);
+        if (hoverCol >= 0 && hoverCol < GRID_COLS) {
+          let exists = waveOrigins.some(w => w.col === hoverCol);
           if (!exists) {
             waveOrigins.push({
-              row: hoverRow,
+              col: hoverCol,
               time: p.frameCount,
               strength: 1.0
             });
@@ -48,44 +46,39 @@ window.initExperiment = function() {
         }
       }
 
-      // Draw grid with wave effect
       for (let cell of gridCells) {
         let { x, y, w, h } = cell;
-        let row = Math.floor((y - gridCells[0].y) / h);
+        let col = Math.floor(x / w);
         
         let totalOffset = 0;
 
-        // Calculate wave effect from all origins
         for (let wave of waveOrigins) {
-          let rowDist = Math.abs(row - wave.row);
+          let colDist = Math.abs(col - wave.col);
           let timeDiff = p.frameCount - wave.time;
           
-          // Wave propagation
-          let phase = (timeDiff * WAVE_SPEED) - (rowDist * 0.5);
+          let phase = (timeDiff * WAVE_SPEED) - (colDist * 0.5);
           if (phase > 0) {
             let amplitude = WAVE_AMPLITUDE * wave.strength * 
-                          Math.exp(-rowDist / WAVE_LENGTH);
+                          Math.exp(-colDist / WAVE_LENGTH);
             totalOffset += Math.sin(phase) * amplitude;
           }
         }
 
-        // Draw contrast background if moving
         if (Math.abs(totalOffset) > 1) {
           p.stroke(strokeColor);
           p.fill(contrastColor);
           p.rect(x, y, w, h);
         }
 
-        // Draw main cell with offset
         p.stroke(strokeColor);
         p.fill(fillColor);
-        p.rect(x + totalOffset, y, w, h);
+        p.rect(x, y + totalOffset, w, h);  // Apply offset to y instead of x
       }
     };
 
     function initializeGrid() {
       gridCells = [];
-      waveOrigins = [];  // Reset wave origins on resize
+      waveOrigins = [];
       
       const logo = document.getElementById('logo');
       const logoHeight = logo ? logo.clientHeight : 0;

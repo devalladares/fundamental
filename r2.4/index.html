@@ -5,7 +5,7 @@
 <meta charset="UTF-8" />
 <title>FUNDAMENTALco Grid Experiments</title>  
 <!-- Link to external CSS file -->
-<link rel="stylesheet" href="https://github.com/devalladares/fundamental/tree/0b2f29d67443c7828880192d0f6630ffbadb3891/r2.4/css" />  
+<link rel="stylesheet" href="css/styles.css" />  
 </head>
 
 <body class="light-mode">
@@ -13,7 +13,7 @@
 <div id="controls">  
   <select id="experiment"></select>
 </div>
-<img id="logo" src="https://github.com/devalladares/fundamental/blob/0b2f29d67443c7828880192d0f6630ffbadb3891/r2.4/assets/logo_black.svg" alt="FUNDAMENTALco Logo" />
+<img id="logo" src="assets/logo_black.svg" alt="FUNDAMENTALco Logo" />
 
 <!-- p5.js library -->
 <script src="https://cdn.jsdelivr.net/npm/p5@1.4.2/lib/p5.min.js"></script>
@@ -169,7 +169,7 @@
 
     // 5) Create & append new script
     currentScript = document.createElement("script");
-    currentScript.src = `https://github.com/devalladares/fundamental/tree/0b2f29d67443c7828880192d0f6630ffbadb3891/r2.4/experiments/${name}.js`;
+    currentScript.src = `experiments/${name}.js`;
     currentScript.onload = () => {
       console.log(`${name}.js loaded successfully.`);
 
@@ -216,7 +216,7 @@
     // Update the logo graphic
     const logo = document.getElementById("logo");
     if (logo) {
-      logo.src = darkMode ? "https://github.com/devalladares/fundamental/blob/0b2f29d67443c7828880192d0f6630ffbadb3891/r2.4/assets/logo_white.svg" : "assets/logo_black.svg";
+      logo.src = darkMode ? "assets/logo_white.svg" : "assets/logo_black.svg";
     }
 
     // Let the p5 sketch know it should also toggle backgrounds

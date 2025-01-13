@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>FUNDAMENTALco Grid Sketches</title>  
+  <!-- Link to external CSS file -->
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+
+<body class="light-mode">
+  <!-- The canvas container for p5.js -->
+  <div id="canvas-container"></div>
+
+  <!-- Hidden by default (handled in CSS) -->
+  <div id="controls">
+    <select id="sketch-select"></select>
+  </div>
+
+  <!-- The logo image -->
+  <img id="logo" src="assets/logo_black.svg" alt="FUNDAMENTALco Logo" />
+
+  <!-- p5.js libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.4.2/lib/p5.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.4.2/lib/addons/p5.sound.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+
+  <script>
+    // --------------------------------------------------
+    // GLOBALS
+    // --------------------------------------------------
+    const dropdown = document.getElementById("sketch-select");
+    const controlsElement = document.getElementById("controls");
+
+    let currentScript = null;
+    let currentP5Instance = null;
+
+    // For dark mode
+    let darkMode = false;
+
+    // --------------------------------------------------
+    // OUR SKETCHES (RENAMED & REORDERED)
+    // --------------------------------------------------
+    // Each "name" corresponds to a .js file in your "sketches" folder.
+    // Each "label" is how it appears in the dropdown.
+    const sketches = [
+      { name: "grid_1_recursive", label: "Grid 01 - Recursive (1.1)" },
+      { name: "grid_1_recursive2", label: "Grid 01 - Recursive (1.2)" },
+      { name: "grid_2_organic",   label: "Grid 02 - Organic (3.1)" },
+      { name: "grid_3_sequencer", label: "Grid 03 - Sequencer (8.1)" },
+      { name: "grid_4_strings",   label: "Grid 04 - Strings (8.3)" },
+      { name: "grid_5_blocks",    label: "Grid 05 - Blocks (10.1)" },
+      { name: "grid_6_vision",       label: "Grid 06 - Vision (11.1)" },
+    ];
+
+    // The default sketch to load if none is specified or invalid
+    const defaultSketch = "grid_1_recursive";
+
+    // --------------------------------------------------
+    // URL PARAM HELPER
+    // --------------------------------------------------
+    function getSketchParam() {
+      // Looking for ?sketch=xyz or ?sketch=random
+      const params = new URLSearchParams(window.location.search);
+      return params.get("sketch");
+    }
+
+    // --------------------------------------------------
+    // POPULATE DROPDOWN
+    // --------------------------------------------------
+    function populateDropdown() {
+      sketches.forEach((sk) => {
+        const option = document.createElement("option");
+        option.value = sk.name;
+        option.textContent = sk.label;
+        dropdown.appendChild(option);
+      });
+      // Set the default dropdown selection
+      dropdown.value = defaultSketch;
+    }
+
+    // --------------------------------------------------
+    // PICK INITIAL SKETCH (RANDOM OR SPECIFIC)
+    // --------------------------------------------------
+    function pickInitialSketch() {
+      const urlSketch = getSketchParam(); // e.g. "grid_3_sequencer" or "random"
+
+      if (urlSketch && urlSketch.toLowerCase() === "random") {
+        // If "random", pick a random from the array
+        const randomIndex = Math.floor(Math.random() * sketches.length);
+        return sketches[randomIndex].name;
+      } 
+      else if (urlSketch && sketches.some(s => s.name === urlSketch)) {
+        // If the URL param matches a .name in our array
+        return urlSketch;
+      }
+      // Otherwise, return the default
+      return defaultSketch;
+    }
+
+    // --------------------------------------------------
+    // LOAD SKETCH SCRIPT
+    // --------------------------------------------------
+    function loadSketch(name) {
+      // 1) Remove old <script>
+      if (currentScript) {
+        document.body.removeChild(currentScript);
+        currentScript = null;
+      }
+
+      // 2) Remove old p5 canvas instance
+      if (currentP5Instance) {
+        currentP5Instance.remove();
+        currentP5Instance = null;
+      }
+
+      // 3) Clear out leftover p5 globals
+      if (window.noCanvas) {
+        noCanvas();
+      }
+      const p5Functions = ["draw", "setup", "mousePressed", "mouseMoved", "windowResized"];
+      p5Functions.forEach((fn) => {
+        if (window[fn]) {
+          delete window[fn];
+        }
+      });
+
+      // 4) Remove leftover variables (if any used globally)
+      const globalVars = ["grid","maxDepth","initialRows","initialCols","initializeGrid","subdivide","handleInteraction"];
+      globalVars.forEach((v) => {
+        if (window[v]) {
+          delete window[v];
+        }
+      });
+
+      // 5) Create & append new script
+      currentScript = document.createElement("script");
+      currentScript.src = `sketches/${name}.js`;  // Make sure your file name matches
+      currentScript.onload = () => {
+        console.log(`${name}.js loaded successfully.`);
+
+        // Expecting each sketch file to define window.initExperiment()
+        if (typeof window.initExperiment === "function") {
+          currentP5Instance = window.initExperiment();
+
+          // If the new sketch supports setDarkMode, call it with current mode
+          if (currentP5Instance && typeof currentP5Instance.setDarkMode === "function") {
+            currentP5Instance.setDarkMode(darkMode);
+          }
+        } else {
+          console.error(`No initExperiment() found in ${name}.js`);
+        }
+      };
+      currentScript.onerror = () => {
+        console.error(`Failed to load script: ${currentScript.src}`);
+      };
+      document.body.appendChild(currentScript);
+    }
+
+    // --------------------------------------------------
+    // TOGGLE THE DROPDOWN CONTROLS
+    // --------------------------------------------------
+    function toggleControls() {
+      if (controlsElement.style.display === "none") {
+        controlsElement.style.display = "block";
+      } else {
+        controlsElement.style.display = "none";
+      }
+    }
+
+    // --------------------------------------------------
+    // DARK MODE TOGGLE
+    // --------------------------------------------------
+    function toggleDarkMode() {
+      darkMode = !darkMode;
+      document.body.classList.toggle("dark-mode", darkMode);
+      document.body.classList.toggle("light-mode", !darkMode);
+
+      // Update the logo
+      const logo = document.getElementById("logo");
+      if (logo) {
+        logo.src = darkMode ? "assets/logo_white.svg" : "assets/logo_black.svg";
+      }
+
+      // Let the p5 sketch know
+      if (currentP5Instance && typeof currentP5Instance.setDarkMode === "function") {
+        currentP5Instance.setDarkMode(darkMode);
+      }
+    }
+
+    // --------------------------------------------------
+    // MAIN SCRIPT FLOW
+    // --------------------------------------------------
+    // 1) Populate the dropdown
+    populateDropdown();
+
+    // 2) Determine which sketch to load first
+    const chosenSketch = pickInitialSketch();
+    // If in array, select it in the dropdown
+    if (sketches.some(s => s.name === chosenSketch)) {
+      dropdown.value = chosenSketch;
+    }
+
+    // 3) Load it
+    loadSketch(chosenSketch);
+
+    // 4) Watch for dropdown changes
+    dropdown.addEventListener("change", (event) => {
+      loadSketch(event.target.value);
+    });
+
+    // 5) Keyboard shortcuts
+    document.addEventListener("keydown", (event) => {
+      // 'D' toggles dark mode
+      if (event.key.toLowerCase() === "d") {
+        toggleDarkMode();
+      }
+      // 'H' toggles the hidden dropdown
+      if (event.key.toLowerCase() === "h") {
+        toggleControls();
+      }
+    });
+  </script>
+</body>
+</html>
